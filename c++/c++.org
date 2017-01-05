@@ -1,0 +1,156 @@
+#+STARTUP: showall
+#+STARTUP: lognotestate
+#+TAGS:
+#+SEQ_TODO: TODO STARTED DONE DEFERRED CANCELLED | WAITING DELEGATED APPT
+#+DRAWERS: HIDDEN STATE
+#+TITLE: C++ notes for CoP
+#+CATEGORY: 
+#+PROPERTY: header-args:sql             :engine postgresql  :exports both :cmdline csc370
+#+PROPERTY: header-args:sqlite          :db /path/to/db  :colnames yes
+#+PROPERTY: header-args:C++             :results output :flags -std=c++14 -Wall --pedantic -Werror
+#+PROPERTY: header-args:R               :results output  :colnames yes
+
+* General
+
+** Use typedefs
+
+#+BEGIN_SRC C++
+std::unordered_map<std::string,std::string> stringmap;
+#+END_SRC
+
+* Vectors
+
+** Multi-dimensional
+
+And allocate their size automatically
+
+#+BEGIN_SRC C++
+vector<vector<int> > A(dimension1, vector<int>(dimension2));
+//or
+vector<vector<int> > A(dimension1, vector<int>(dimension2),initValue);
+#+END_SRC
+
+* Collections
+
+
+** Reverse a collection
+
+#+BEGIN_SRC C++
+std::reverse(v.begin(), v.end());
+#+END_SRC
+
+** Back inserter
+
+#+BEGIN_SRC C++
+std::back_insert_iterator< std::vector<int> > back_it (v2);
+#+END_SRC
+
+** map (as in functional map)
+
+Using a backinserter, probably the best way to do it
+
+if it does not create the vector, then why bother? Perhaps
+just use for_each instead
+
+#+BEGIN_SRC C++
+std::back_insert_iterator< std::vector<int> > back_it (v2);
+std::transform(v.begin(), v.end(), back_it, [](int x)->int {
+  return -x;
+});
+#+END_SRC
+
+** for_each
+
+#+BEGIN_SRC C++
+std::for_each(v.begin(), v.end(), [](int x) {
+   std::cout << x ;
+});
+#+END_SRC
+
+* Maps
+
+** order/unordered
+
+#+BEGIN_SRC 
+std::map<char,int> mymap;
+std::unordered_map<char,int> mymap;
+#+END_SRC
+
+** constructors
+
+Add "pairs" in the constructor"
+
+#+BEGIN_SRC C++
+stringmap second ( {{"apple","red"},{"lemon","yellow"}} );     
+#+END_SRC
+
+** Add elements
+
+#+BEGIN_SRC C++
+second["apple"] = "red";
+#+END_SRC
+
+** traversal
+
+each element is a pair: with first and second
+
+#+BEGIN_SRC C++
+for (auto& x: sixth) 
+   std::cout << " " << x.first << ":" << x.second;
+#+END_SRC
+
+** does the map have it? so we can access it
+
+#+BEGIN_SRC C++
+if (mymap.count(x)>0)
+   std::cout << "mymap has " << x << std::endl;
+else
+   std::cout << "mymap has no " << x << std::endl;
+#+END_SRC
+
+** find: with an iterator to it
+
+- gets specific element 
+- just use count instead, unless you want to erase it
+
+#+BEGIN_SRC C++
+std::map<char,int> mymap;
+std::map<char,int>::iterator it;
+
+it = mymap.find('b');
+if (it != mymap.end())
+  mymap.erase (it);
+#+END_SRC
+
+* Input
+
+** Split input into strings by a delimiter
+  
+#+BEGIN_SRC C++
+string st;
+vector<string> tokens;
+while (getline(std::cin, st, delim)) {
+   tokens.push_back(item);
+}
+#+END_SRC
+
+p** input into an integer
+
+| std::stoi  | int       |
+| std::stol  | long      |
+| std::stoll | long long |
+
+
+#+BEGIN_SRC C++
+string st;
+vector<int> tokens;
+while (getline(std::cin, st, delim)) {
+   tokens.push_back(std::stoi(st));
+}
+#+END_SRC
+
+** split string by delimiter
+
+
+  
+  #+END_SRC
