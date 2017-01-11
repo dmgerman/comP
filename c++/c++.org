@@ -305,3 +305,28 @@ void unionSet(int i, int j)
     }
 }
 #+END_SRC
+
+* Regular expressions
+
+#+BEGIN_SRC C++
+#include <iostream>
+#include <string>
+#include <regex>
+
+std::regex rgx("((1[0-2])|(0?[1-9])):([0-5][0-9])((am)|(pm))");
+std::smatch match;
+
+if (std::regex_search(input.begin(), input.end(), match, rgx)){
+        std::cout << "Match\n";
+
+        //for (auto m : match)
+        //  std::cout << "  submatch " << m << '\n';
+
+        std::cout << "match[1] = " << match[1] << '\n';
+        std::cout << "match[4] = " << match[4] << '\n';
+        std::cout << "match[5] = " << match[5] << '\n';
+    }
+    else
+        std::cout << "No match\n";
+ 
+ #+END_SRC
