@@ -9,6 +9,7 @@
 #+PROPERTY: header-args:sqlite          :db /path/to/db  :colnames yes
 #+PROPERTY: header-args:C++             :results output :flags -std=c++14 -Wall --pedantic -Werror
 #+PROPERTY: header-args:R               :results output  :colnames yes
+#+OPTIONS: ^:nil
 
 * General
 
@@ -65,6 +66,100 @@ std::transform(v.begin(), v.end(), back_it, [](int x)->int {
 std::for_each(v.begin(), v.end(), [](int x) {
    std::cout << x ;
 });
+#+END_SRC
+
+
+* Priority queue
+
+** Descending
+
+#+BEGIN_SRC C++
+#include <iostream>
+#include <queue>
+#include <vector>
+#include <algorithm>
+
+int main()
+{
+   std::priority_queue<int,std::vector<int>,std::greater<int>> q;
+   for(int n : {1,8,5,6,3,4,0,9,7,2})
+     q.push(n);
+   for(int i = 0;i<10;i++) {
+      std::cout << q.top() << std::endl;
+      q.pop();
+   }
+   return 0;
+}
+#+END_SRC
+
+** ascending
+
+#+BEGIN_SRC C++
+#include <iostream>
+#include <queue>
+#include <vector>
+#include <algorithm>
+
+int main()
+{
+   std::priority_queue<int,std::vector<int>,std::greater<int>> q;
+   for(int n : {1,8,5,6,3,4,0,9,7,2})
+     q.push(n);
+   for(int i = 0;i<10;i++) {
+      std::cout << q.top() << std::endl;
+      q.pop();
+   }
+   return 0;
+}
+#+END_SRC
+
+* queue/deque
+
+#+BEGIN_SRC  C++ :main no :flags -std=c++14 -Wall --pedantic -Werror :results output 
+#include <iostream>
+#include <deque>
+ 
+int main()
+{
+    // Create a deque containing integers
+    std::deque<int> d = {7, 5, 16, 8};
+ 
+    // Add an integer to the beginning and end of the deque
+    d.push_front(13);
+    d.push_back(25);
+ 
+    // Iterate and print values of deque
+    for(int n : d) {
+        std::cout << n << '\n';
+    }
+}
+#+END_SRC
+
+** operations
+
+| push_back  |               |
+| push_front |               |
+| pop_back   |               |
+| pop_front  |               |
+| top        |               |
+| pop        |               |
+| front      | inspect front |
+| back       | inspect back  |
+
+
+* stack
+
+remember, pop pops, but top inspects
+
+#+BEGIN_SRC C++
+std::stack<int>   s;
+ 
+s.push( 2 );
+s.push( 6 );
+s.push( 51 );
+
+s.pop();
+s.top();
 #+END_SRC
 
 * Maps
@@ -124,7 +219,14 @@ if (it != mymap.end())
 
 * Input
 
-** Split input into strings by a delimiter
+** Using scanf
+
+#+BEGIN_SRC 
+int j = scanf("%d %d\n", &n,&q);
+assert(j == 3)
+int j = scanf("%d %d\n", &n,&q);
+assert(j == 2);
+to strings by a delimiter
   
 #+BEGIN_SRC C++
 string st;
@@ -154,3 +256,52 @@ while (getline(std::cin, st, delim)) {
 
   
   #+END_SRC
+
+* Union find
+
+#+BEGIN_SRC c++
+#include <vector>
+#include <assert.h>
+
+std::vector<int> id {};
+std::vector<int> rank {};
+
+void init_union_find(int n)
+{
+    id.resize(n);
+    rank.resize(n,0);
+    for(int i=0;i<n;i++) {
+        id.at(i) = i;
+    }
+}
+
+int findSet(int i)
+{
+    if (id.at(i) == i)
+        return i;
+    else {
+        id.at(i) = findSet(id.at(i));
+        return id.at(i);
+    }
+}
+
+bool isSameSet(int p, int q)
+{
+    return (findSet(p) == findSet(q));
+}
+
+void unionSet(int i, int j)
+{
+    if (!isSameSet(i,j)) {
+        int x = findSet(i);
+        int y = findSet(j);
+        if (rank.at(x) > rank.at(y))
+            id.at(y) = x;
+        else {
+            id.at(x) = y;
+            if (rank.at(x) == rank.at(y))
+                rank.at(y)++;
+        }
+    }
+}
+#+END_SRC

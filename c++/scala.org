@@ -1,0 +1,338 @@
+#+STARTUP: showall
+#+STARTUP: lognotestate
+#+TAGS:
+#+SEQ_TODO: TODO STARTED DONE DEFERRED CANCELLED | WAITING DELEGATED APPT
+#+DRAWERS: HIDDEN STATE
+#+TITLE: Scala goodies for CompProg
+#+CATEGORY: 
+#+PROPERTY: header-args:sql             :engine postgresql  :exports both :cmdline csc370
+#+PROPERTY: header-args:sqlite          :db /path/to/db  :colnames yes
+#+PROPERTY: header-args:C++             :results output :flags -std=c++14 -Wall --pedantic -Werror
+#+PROPERTY: header-args:R               :results output  :colnames yes
+#+OPTIONS: ^:nil
+
+* Conversions
+
+| Iterator | toArray    |                         |
+|          | toList     |                         |
+|          | toSet      |                         |
+|          | mkString   | Can include a separator |
+| string   | toInt      |                         |
+|          | BigInt(st) |                         |
+|          | toFloat    |                         |
+
+* Functions
+
+| abs | Math.abs | 
+
+
+* Input
+
+** Read one line
+
+#+BEGIN_SRC  scala
+val tests = scala.io.StdIn.readLine().toInt
+#+END_SRC
+
+
+** Read all lines until certain condition
+
+It is an iterator. Optionally convert to Array or List depending on processing
+
+- takeWhile can specify any condition
+
+
+#+BEGIN_SRC scala
+(* until end of file *)
+val lines = Iterator.continually(scala.io.StdIn.readLine()).takeWhile(x => x != null).toList
+#+END_SRC
+
+** Read n lines
+
+#+BEGIN_SRC scala
+val lines = Iterator.continually(scala.io.StdIn.readLine()).take(r).toArray
+#+END_SRC
+
+
+* Output
+
+** format output
+
+Scanf type
+
+#+BEGIN_SRC scala
+println("%.1f".format(x._3*ratio))
+#+END_SRC
+
+* Algorithms
+
+** Sort
+
+descending order
+
+#+BEGIN_SRC 
+sortWith(_ < _)
+#+END_SRC
+
+** Foreach in a range
+
+Equivalent to the usually for loop
+
+#+BEGIN_SRC scala
+1 to x foreach { i => 
+}
+#+END_SRC
+
+
+** permutations
+
+List(1,2,3).permutations.
+
+** combinations
+
+val words = List(1,2,2).toSet.subsets.map(_.toList).toList
+
+* Mutable
+
+#+BEGIN_SRC scala
+import scala.collection.mutable.{HashMap, Map}
+#+END_SRC
+
+* Maps
+
+** getOrElse
+
+#+BEGIN_SRC scala
+// states is a map
+states.getOrElse("FOO", "No such state")
+#+END_SRC
+
+** Declare them
+
+
+#+BEGIN_SRC scala
+var save:Map[(Int,List[Int]),Set[Int]] = Map()
+#+END_SRC
+
+
+* priority queue
+
+#+BEGIN_SRC scala
+import scala.collection.mutable.PriorityQueue
+
+case class Donut(name: String, price: Double)
+
+def donutOrder(d: Donut) = d.price
+
+val priorityQueue1: PriorityQueue[Donut] = PriorityQueue(
+ Donut("Plain Donut", 1.50),
+ Donut("Strawberry Donut", 2.0),
+ Donut("Chocolate Donut", 2.50))(Ordering.by(donutOrder))
+println(s"Elements of priorityQueue1 = $priorityQueue1")
+
+priorityQueue1.enqueue(Donut("Vanilla Donut", 1.0))
+
+#+END_SRC
+
+* Memoize
+
+- Should it be a var? I *think* so
+
+#+BEGIN_SRC scala
+var save:Map[(Int,List[Int]),Set[Int]] = Map()
+
+def my_partitions(size: Int, part: List[Int]): Set[Int] = { 
+   if (save.contains((size,part))) {
+      save((size,part))
+   } else {
+    (* whatever *)
+      val result = ...
+      save += ((size, part)-> result)
+      result
+   }
+}
+#+END_SRC
+
+** check if element include
+
+#+BEGIN_SRC 
+if (penalty.contains(problem)) 
+  penalty(problem) += 1
+else
+  penalty += (problem -> 1)
+}
+#+END_SRC
+
+** Mutable 
+
+#+BEGIN_SRC scala
+var penalty : scala.collection.mutable.Map[String,Int] = scala.collection.mutable.Map()
+#+END_SRC
+
+** with default value
+
+non mutable
+
+#+BEGIN_SRC scala
+val m = Map[Int, Int]().withDefaultValue(0)
+#+END_SRC
+
+** processing the "values"
+
+#+BEGIN_SRC scala
+val totalTime = good.map(_._2).sum
+#+END_SRC
+
+
+
+* Sets
+
+** Ops
+
+| x1 union x2     |                                 |
+| x1 intersect x2 |                                 |
+| x1 diff x2      |                                 |
+| x1.empty        | returns an empty set of x1 type |
+| xs contains x   |                                 |
+| xs subsetOf yx  | is xs a subset of yx            |
+
+** Mutable
+
+| xs += elem      |                                         |
+| xs -= elem      |                                         |
+| xs ++= otherSet |                                         |
+| xs retain p     | retain elements that satisfy p          |
+| xs.clear        |                                         |
+| xs clone        | create a new set                        |
+| xs.update(x,b)  | if b true, add to x, otherwise remove x |
+
+
+#+BEGIN_SRC 
+
+#+END_SRC
+
+* Strings
+
+** Prefix of a string
+
+| st toLowerCase    |
+| st contains st2   |
+| st startsWith st2 |
+| st equalsIgnoreCase st2 |
+
+
+* Dates
+
+** get parts of the date
+
+#+BEGIN_SRC scala
+val today = Calendar.getInstance().getTime()
+val now = Calendar.getInstance()
+now.get(Calendar.MINUTE)
+now.get(Calendar.HOUR)
+now.get(Calendar.MONTH)
+now.get(Calendar.DAY_OF_WEEK)
+now.get(Calendar.DAY_OF_MONTH)
+now.get(Calendar.DAY_OF_WEEK_IN_MONTH)
+now.get(Calendar.DAY_OF_YEAR)
+now.get(Calendar.WEEK_OF_YEAR)
+#+END_SRC
+
+** parse a date
+
+#+BEGIN_SRC scala
+import java.text.DateFormat; 
+import java.text.ParseException; 
+import java.text.SimpleDateFormat; 
+import java.util.Date; 
+ 
+DateFormat df = new SimpleDateFormat("dd/MM/yyyy"); 
+try { 
+  Date today = df.parse("19/08/2011");
+  System.out.println("Today = " + df.format(today));
+} 
+catch (ParseException e) 
+{
+e.printStackTrace(); 
+} 
+#+END_SRC
+
+** convert string to time 
+
+#+BEGIN_SRC scala
+// times contains collection of times 12:00 p.m. or 11:30 a.m.
+      val times = lines.map( l => {
+        val pm = 60 *12 * 60;
+        val x = l.split("[: ]")
+        val h = x(0).toInt 
+
+        (l,
+          (if (h == 12) 0 else h) * 60 +
+          x(1).toInt +
+          pm * (if (x(2) == "a.m.") 0 else 1))
+        
+      })
+#+END_SRC
+
+* generics
+
+** Breaking a loop
+
+#+BEGIN_SRC scala
+var last = 0
+(x to 1 by -1).iterator.takeWhile(i => !condition).foreach(i => {
+   assert(!flag)
+   last = i
+})
+if (last != 1) {
+   // we "broke" the loop
+}
+ 
+#+END_SRC
+
+* Tuples
+
+** process tuples
+
+need to use case expression in lambda
+
+#+BEGIN_SRC scala
+val totalPenalty = penalty.map({case (problem,count) =>
+})
+#+END_SRC
+
+
+* Regular expressions
+
+** Simple substitutioj
+
+#+BEGIN_SRC scala
+val regex = "[0-9][0-9]?".r
+val z = regex.replaceAllIn(x, x => rename(x.toString.toInt))
+#+END_SRC
+
+
+** Complex substitution
+
+#+BEGIN_SRC scala
+val cons = "([^aeiou]+)([^ ]+)".r
+val z = cons.replaceAllIn(line, _ match { case cons(pre, rest) => "[" + rest + pre + "]"})
+#+END_SRC
+
+** matching
+
+#+BEGIN_SRC scala
+val cons = "(^[^aeiou]+)(.*)".r
+cons.findFirstIn(w) match {
+  case Some( cons(pre,rest)) => rest + pre + "ay"
+  case None => {
+    w + "yay"
+  }
+}
+
+#+END_SRC
+
+* Chars
+
+| toUpper|
+| toLower|
