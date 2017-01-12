@@ -46,6 +46,11 @@ std::reverse(v.begin(), v.end());
 std::back_insert_iterator< std::vector<int> > back_it (v2);
 #+END_SRC
 
+#+BEGIN_SRC C++
+std::copy (bar.begin(),bar.end(),back_inserter(foo));
+#+END_SRC
+
+
 ** map (as in functional map)
 
 Using a backinserter, probably the best way to do it
@@ -251,13 +256,59 @@ while (getline(std::cin, st, delim)) {
 }
 #+END_SRC
 
+
 ** split string by delimiter
 
 
-  
-  #+END_SRC
+* Algorithms 
 
-* Union find
+** Fenwick
+
+#+BEGIN_SRC C++
+#include <iostream>
+#include <vector>
+#include <assert.h>
+
+
+int LSOne(int i)
+{
+    return (i & (-i));
+}
+
+class FenwickTree {
+    std::vector<int> ft;
+    unsigned int size;
+public:
+    FenwickTree(unsigned int n) {
+        ft.resize(n+1);
+        size = n;
+    }
+    int rsq(unsigned int b) {
+        assert(b > 0 && b <= size);
+
+        int sum = 0;
+        for (;b;b-=LSOne(b))
+            sum+= ft[b];
+        return sum;
+    }
+    
+    int rsq(unsigned int a, unsigned int b) {
+        assert(b >= a);
+
+        return rsq(b) - (a ==1 ? 0 : rsq(a-1));
+    }
+    
+    void adjust(unsigned int k, int v) {
+        assert(k > 0 && k <= size);
+        for (;k<ft.size();k+=LSOne(k))
+            ft[k] += v;
+    }
+    
+};
+
+#+END_SRC
+
+** Union find
 
 #+BEGIN_SRC c++
 #include <vector>
@@ -330,3 +381,86 @@ if (std::regex_search(input.begin(), input.end(), match, rgx)){
         std::cout << "No match\n";
  
  #+END_SRC
+
+
+* Converstions
+
+** int string to string
+std::string s = std::to_string(42);
+
+** vector to string no separator
+
+#+BEGIN_SRC C++
+   std::string st2 = std::accumulate(v.begin(), v.end(), std::string {}, [](auto i, auto j) {
+           return i+std::to_string(j);
+       });
+   
+#+END_SRC
+
+** vector to string with separator
+
+#+BEGIN_SRC C++
+   std::string st{};
+   assert(v.size() > 0);
+   std::for_each(v.begin(), v.end()-1, [&st](int i) {
+           st += std::to_string(i) + " ";
+       });
+   st += std::to_string(v.back());
+#+END_SRC
+
+#+BEGIN_SRC C++
+   std::string st{};
+   assert(v.size() > 0);
+   std::for_each(v.begin(), v.end()-1, [&st](int i) {
+           st += std::to_string(i) + " ";
+       });
+   st += std::to_string(v.back());
+#+END_SRC
+
+as a template
+
+#+BEGIN_SRC C++
+template <typename T>
+std::string mkString(std::vector<T> &v, std::string sep=" ")
+{
+   std::string st2 = std::to_string(v.at(0)) + 
+      std::accumulate(v.begin()+1, v.end(), std::string {}, [&sep](auto i, auto j) {
+           return i+ sep + std::to_string(j);
+           });
+
+   return st2;
+}
+#+END_SRC
+
+#+BEGIN_SRC C++ :main no :flags -std=c++11 -Wall --pedantic -Werror :results output :exports both
+#include <iostream>
+#include <functional>
+int main()
+{
+/*
+  auto f = [](int n) -> int {
+          return n <= 1 ? 1 : n * f(n - 1);
+      };
+*/
+
+  std::function<int (int)> factorial = [&] (int i) { 
+    return (i == 1) ? 1 : i * factorial(i - 1); 
+  };
+
+  auto fact = [&] (int i) -> int { 
+    return (i == 1) ? 1 : i * fact(i - 1); 
+  };
+
+  auto f = [](int i) -> int {
+      return  10*i;
+     } ;
+  int x = f(4); //x = 24
+
+  std::cout << x << std::endl;
+  std::cout << factorial(10) << std::endl;
+  return 0;
+}
+
+#+END_SRC
+
+#+RESULTS:
