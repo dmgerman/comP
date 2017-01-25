@@ -86,7 +86,7 @@ std::for_each(v.begin(), v.end(), [](int x) {
 
 int main()
 {
-   std::priority_queue<int,std::vector<int>,std::greater<int>> q;
+   std::priority_queue<int> q;
    for(int n : {1,8,5,6,3,4,0,9,7,2})
      q.push(n);
    for(int i = 0;i<10;i++) {
@@ -96,6 +96,18 @@ int main()
    return 0;
 }
 #+END_SRC
+
+#+RESULTS:
+| 9 |
+| 8 |
+| 7 |
+| 6 |
+| 5 |
+| 4 |
+| 3 |
+| 2 |
+| 1 |
+| 0 |
 
 ** ascending
 
@@ -261,6 +273,20 @@ while (getline(std::cin, st, delim)) {
 
 
 * Algorithms 
+
+** Checking all digits used
+
+#+BEGIN_SRC C++
+tmp = number;
+while (tmp)  {
+   used |= 1 << tmp % 10 ;
+   tmp = tmp / 10;
+}
+//if used has all bits...
+f (used == (1<<10) -1)
+  ...
+  
+#+END_SRC
 
 ** Fenwick
 
@@ -464,3 +490,73 @@ int main()
 #+END_SRC
 
 #+RESULTS:
+
+* Large numbers
+
+in my computer long and long long are the same
+
+| int           |          2147483647 |
+| long int      | 9223372036854775807 |
+| long long int | 9223372036854775807 |
+
+Programatically with template function
+
+#+BEGIN_SRC C++
+std::numeric_limits<int>::min();
+std::numeric_limits<int>::max();
+#+END_SRC
+
+* Lambdas
+
+std::function<int (int)> factorial = [&] (int i) { 
+
+
+* Some math
+
+** xor
+
+a xor b = c then a = b xor c
+
+
+** lcm
+
+lcm(a,b) = | a * b | /gcd(a,b)
+
+** gcd
+
+#+BEGIN_SRC C++
+int gcd(int a, int b)
+{
+    if (b == 0)
+        a;
+    else
+        gcd(b, a % b);
+}
+#+END_SRC
+
+* Tree stored in a array
+
+
+- the tree uses a vector of size n
+- all elements are used
+- root at 0
+
+#+BEGIN_SRC C++
+auto isInternal = [&](int i) {
+    return (i < (m-1)/2);
+};
+
+std::function<void(int)> print = [&](int i) {
+    assert(i < m);
+    std::cout << "node " << i <<  std::endl;
+    std::cout << "  value " << tree.at(i) <<  std::endl;
+    
+    if (isInternal(i)) {
+        int off = i * 2 + 1; 
+        print(off);
+        print(off+1);
+    }
+    
+};
+
+#+END_SRC

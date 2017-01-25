@@ -53,6 +53,11 @@ val lines = Iterator.continually(scala.io.StdIn.readLine()).takeWhile(x => x != 
 val lines = Iterator.continually(scala.io.StdIn.readLine()).take(r).toArray
 #+END_SRC
 
+** read each line and process
+
+#+BEGIN_SRC scala
+Iterator.continually(scala.io.StdIn.readLine()).takeWhile(_ != null).foreach(l=>process(l))
+#+END_SRC
 
 * Output
 
@@ -65,6 +70,16 @@ println("%.1f".format(x._3*ratio))
 #+END_SRC
 
 * Algorithms
+
+** gsd
+
+#+BEGIN_SRC scala
+  def gcd(a:Int, b:Int):Int =
+    if (b == 0)
+      a
+   else
+      gcd(b, a % b)
+#+END_SRC
 
 ** Sort
 
@@ -99,6 +114,18 @@ import scala.collection.mutable.{HashMap, Map}
 #+END_SRC
 
 * Maps
+
+** Convert array into map
+
+- this breaks a set of lines into a map 
+- be careful if the first column is repeated
+
+#+BEGIN_SRC scala
+val locsM = lines.map{x =>
+  val Array(a,b) = x.split(' ').map(y=>y.toInt)
+  (a->b)
+}.toMap
+#+END_SRC
 
 ** getOrElse
 
@@ -294,12 +321,14 @@ if (last != 1) {
 
 ** process tuples
 
-need to use case expression in lambda
+If we need to process lists of tuples
 
 #+BEGIN_SRC scala
+// penalty is a collection of tuples
 val totalPenalty = penalty.map({case (problem,count) =>
 })
 #+END_SRC
+
 
 
 * Regular expressions
@@ -336,3 +365,251 @@ cons.findFirstIn(w) match {
 
 | toUpper|
 | toLower|
+
+* Algorithms
+
+** Fast fibonnacci
+
+this implementation is mode 1e10
+
+#+BEGIN_SRC scala
+import scala.collection.mutable.{HashMap, Map}
+
+var fib:Map[Long,Long] = Map();
+
+def fastFibo(i: BigInt):BigInt = {
+
+  if (fib.contains(i)) {
+    fib(i);
+  } else {
+    if (i ==1 || i ==2) {
+      fib(i)=1;
+    } else {
+      val i_half:BigInt = i / 2;
+      val f_k:BigInt= fastFibo(i_half);
+      val f_k_plus_1:BigInt= fastFibo(i_half+1);
+      val r:BigInt = 
+        if (i %2 == 0) 
+          (f_k * (2 * f_k_plus_1 - f_k)) % BigInt(1000000000)
+        else 
+          (f_k_plus_1 * f_k_plus_1 + f_k * f_k) % BigInt(1000000000)
+      ;
+
+      fib(i) = if (r<0) r+1000000000 else r;
+    }
+    fib(i);
+  }
+}
+#+END_SRC
+
+* Queens
+
+as it is usual, pos is an array of n board
+
+
+#+BEGIN_SRC scala
+    def check_row(row:Int, pos: Array[Int]): Boolean = {
+      val col = pos(row)
+//      assert(col >=0 && col <8)
+      0 to (row-1) foreach { r =>
+        val c = pos(r)
+        if (col == c ||
+          (col - c).abs == (row-r).abs)
+          return false;
+      }
+      return true;
+    }
+
+
+    def check(pos:Array[Int]):Boolean = {
+      1 to pos.size-1 foreach { i=>
+        if (!check_row(i, pos))
+          return false;
+      }
+      return true;
+    }
+
+
+#+END_SRC
+
+#+BEGIN_SRC scala
+object Nqueen {
+  type Queen = (Int, Int)
+  type Solutions = List[List[Queen]]
+
+  def main(args: Array[String]) {
+    val size: Int = args match {
+      case Array() => sys.error("Provide a board size")
+      case Array(n) => n.toInt
+    }
+    def placeQueens(n: Int): Solutions = n match {
+      case 0 => List(Nil)
+      case _ => for {
+          queens <- placeQueens(n -1)
+          y <- 1 to size
+          queen = (n, y)
+          if (isSafe(queen, queens))
+        } yield queen :: queens
+      }
+    val solutions = placeQueens(size)
+    println(solutions.size + " solutions found")
+    // print the board of the first solution
+    for (queen <- solutions.head; x <- 1 to size) {
+      if (queen._2 == x) print("Q ") else print(". ")
+      if (x == size) println()
+    }
+  }
+
+  def isSafe(queen: Queen, others: List[Queen]) =
+    others forall (!isAttacked(queen, _))
+
+  def isAttacked(q1: Queen, q2: Queen) =
+    q1._1 == q2._1 ||
+    q1._2 == q2._2 ||
+    (q2._1-q1._1).abs == (q2._2-q1._2).abs
+}
+#+END_SRC
+
+* Trees
+
+A simple tree with no values in nodes
+
+#+BEGIN_SRC scala
+package examples
+
+/** Illustrate the use of pattern matching in Scala. */
+object patterns {
+  
+  /** We need an abstract base class for trees. Subclasses with 
+   *  the 'case' modifier can be used in pattern matching expressions 
+   *  to deconstruct trees. 
+   */
+  abstract class Tree
+  case class Branch(left: Tree, right: Tree) extends Tree
+  case class Leaf(x: Int) extends Tree
+
+  /** Case classes have an implicit constructor methods which allows 
+   *  to create objects withouth the 'new' keyword. It saves some typing 
+   *  and makes code clearer. 
+   */
+  val tree1 = Branch(Branch(Leaf(1), Leaf(2)), Branch(Leaf(3), Leaf(4)))
+
+  /** Return the sum of numbers found in leaves. 
+   *  'match' is a generalization of 'switch' in C-like languages 
+   * 
+   *  Patterns consist of case class constructors (which can 
+   *  be nested), and lower case variables which are 
+   *  bound to the values with which the class has been constructed. 
+   */
+  def sumLeaves(t: Tree): Int = t match {
+    case Branch(l, r) => sumLeaves(l) + sumLeaves(r)
+    case Leaf(x) => x
+  }
+
+  /** This illustrates the use of Option types. Since the 
+   *  method is not known in advance to find 'x', the 
+   *  return type is an Option. Options have two possible 
+   *  values, either 'Some' or 'None'. It is a type-safe 
+   *  way around 'null' values. 
+   */
+  def find[A, B](it: Iterator[(A, B)], x: A): Option[B] = {
+    var result: Option[B] = None
+    while (it.hasNext && result == None) {
+      val Pair(x1, y) = it.next
+      if (x == x1) result = Some(y)
+    }
+    result
+  }
+
+  def printFinds[A](xs: List[(A, String)], x: A) =
+    find(xs.elements, x) match {
+      case Some(y) => println(y)
+      case None => println("no match")
+    }
+
+  def main(args: Array[String]) {
+    println("sum of leafs=" + sumLeaves(tree1))
+    printFinds(List((3, "three"), (4, "four")), 4)
+  }
+}
+#+END_SRC
+
+Another tree implementation with values in nodes
+
+#+BEGIN_SRC scala
+
+abstract class Tree
+case class Branch(x:Int, left: Tree, right: Tree) extends Tree
+case class Leaf(x: Int) extends Tree
+case object Empty extends Tree
+
+val tree1 = Branch(30, Branch(10, Leaf(1), Leaf(2)), Branch(20, Leaf(3), Leaf(4)))
+
+def sumLeaves(t: Tree): Int = t match {
+  case Branch(i, l, r) => sumLeaves(l) + sumLeaves(r) + i
+  case Leaf(x) => x
+  case _ => 0
+}
+
+def printTree(t: Tree):Unit = {
+
+  def print_h(t:Tree, indent: Int):Unit = {
+    val prefix = " " * indent ;
+    t match {
+      case Branch(i, l, r) =>
+        println(prefix + s"branch: $i" )
+        println(prefix + s"Left" )
+        print_h(l, indent + 3);
+        println(prefix + s"Right" )
+        print_h(r, indent + 3)
+      case Leaf(x) =>
+        println(prefix + s"leaf [$x]")
+      case _ => ()
+    }
+  }
+  print_h(t, 0);
+}
+
+def insert(t:Tree, x:Int):Tree = t match {
+  case Branch(i,l,r) =>
+    if (x <= i)
+      Branch(i, insert(l, x), r)
+    else
+      Branch(i, l, insert(r, x))
+  case Leaf(i) =>
+      if (x < i)
+        Branch(i, Leaf(x), Empty)
+      else
+        Branch(i, Empty, Leaf(x))
+  case Empty =>
+    Leaf(x)
+}
+
+def build(xs: List[Int]) : Tree  = {
+
+  def build_h(acc: Tree, xs: List[Int]) : Tree = {
+    xs match {
+      case Nil => acc
+      case head::tail => build_h(insert(acc, head), tail)
+    }
+  }
+  build_h(Empty, xs)
+}
+
+println("sum of leafs=" + sumLeaves(tree1))
+printTree(tree1)
+
+println("Done---")
+
+val tree2 = insert(insert(insert(Empty, 5),10),40);
+printTree(tree2)
+println("Done---")
+
+printTree(build( List(1,2,3,4) ))
+
+println("Done-----------------")
+
+printTree(build( List(2, 9, 4, 5, 7, 8, 9, 2,1,0,2)))
+
+print(tree2)
+#+END_SRC
