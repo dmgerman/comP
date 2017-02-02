@@ -570,6 +570,33 @@ def printTree(t: Tree):Unit = {
   print_h(t, 0);
 }
 
+// this functions requires more testing
+
+def delete(t:Tree, x:Int):Tree = t match {
+  case Branch(i,l,r) =>
+    if (i == x) {
+      (l,r) match  {
+        case (Empty,Empty) => Empty
+        case (Empty, _) => r
+        case (_, Empty) => l
+        case (Leaf(x1), _) => Branch(x1, Empty, r)
+        case (Branch(x1, _, _),_) =>
+          Branch(x1, delete(l,x1), r)
+      }
+    }
+    else if (x < i)
+      Branch(i, delete(l, x), r)
+    else
+      Branch(i, l, delete(r, x))
+  case Leaf(i) =>
+    if (i == x)
+      Empty
+    else
+      t
+  case Empty =>
+    t
+}
+
 def insert(t:Tree, x:Int):Tree = t match {
   case Branch(i,l,r) =>
     if (x <= i)

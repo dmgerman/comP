@@ -383,6 +383,123 @@ void unionSet(int i, int j)
 }
 #+END_SRC
 
+** Graph
+
+#+BEGIN_SRC c++
+typedef int node_type;
+typedef double node_value_type;
+typedef std::map<std::pair<node_type, node_type>, node_value_type> graph_type;
+
+void print_graph(graph_type &g)
+{
+    for(auto e:g) {
+        auto v = e.first;
+        std::cout << "vertex " << v.first << "," << v.second << " value " << e.second << std::endl;
+    }
+}
+
+bool bellman_ford(graph_type &g, int n, node_type source,
+                  std::vector<node_type>&predecessor,
+                  std::vector<node_value_type>&distance)
+{
+
+    distance.resize(n);
+    predecessor.resize(n);
+
+#define LARGE (std::numeric_limits<double>::infinity())
+
+
+    for(int i=0;i<n;i++) {
+        distance[i] = LARGE;
+        predecessor[i] = -1;
+    }
+
+    distance[source] = 0;
+    /// Step 2: relax edges repeatedly
+    //for i from 1 to size(vertices)-1:
+    for(int i=1; i<(int)distance.size();i++) {
+        int changed = false;
+        for (auto edge : g) {
+            node_value_type w = edge.second;
+            node_type u = edge.first.first;
+            node_type v = edge.first.second;
+            if (distance[u] != LARGE &&  distance[u] + w < distance[v] ) {
+                distance[v] = distance[u] + w;
+                predecessor[v] = u;
+                changed = true;
+            }
+            
+        }
+        if (!changed)
+            break;
+    }
+
+// Step 3: check for negative-weight cycles
+    for (auto edge: g ) {
+        node_value_type w = edge.second;
+        node_type u = edge.first.first;
+        node_type v = edge.first.second;
+
+        if (distance[u] != LARGE && distance[u] + w < distance[v])
+            return false;
+    }
+    return true;
+}
+
+
+
+void print_matrix(std::vector<std::vector<double>> &g)
+{
+    for(auto r:g) {
+        for(auto c:r) {
+            std::cout << c << " ";
+        }
+        std::cout << std::endl;
+    }
+}
+
+// big assumtipon
+// graph is created with one edge
+
+std::vector<std::vector<double>> floyd_marshall(graph_type &g, int n)
+{
+    std::vector<std::vector<double>> distance(n, std::vector<double>(n, LARGE));
+
+    for(int i=0;i<n;i++)
+        for(int k=0;k<n;k++)
+            distance[i][k] = LARGE;
+
+    for (auto edge : g) {
+        node_value_type w = edge.second;
+        node_type u = edge.first.first;
+        node_type v = edge.first.second;
+        distance[u][v] = w;
+    }
+
+
+    for(int k=0;k<n;k++)
+        for(int i=0;i<n;i++)
+            for(int j=0;j<n;j++)
+                if (distance[i][j] > distance[i][k] + distance[k][j])
+                    distance[i][j] = distance[i][k] + distance[k][j];
+
+    // detect negative cycles
+    for(int i=0;i<n;i++)
+        for(int j=0;j<n;j++)
+            for(int k=0;k<n;k++)
+                if( distance[i][k] != LARGE && // Is there any path from i to k?
+                    distance[k][j] != LARGE && // Is there any path from k to j?
+                    distance[k][k] < 0)      // Is k part of a negative loop?
+                    distance[i][j] = -LARGE;
+
+    //print_matrix(distance);
+    return distance;
+}
+
+
+
+#+END_SRC
+
 * Regular expressions
 
 #+BEGIN_SRC C++
@@ -534,7 +651,14 @@ int gcd(int a, int b)
 }
 #+END_SRC
 
-* Tree stored in a array
+* Trees
+
+** Tree that points to the parent
+
+- The fenwick tree is a great data structure to keep track of the ancestors
+  of a node
+
+** Tree stored in a array
 
 
 - the tree uses a vector of size n
@@ -560,3 +684,4 @@ std::function<void(int)> print = [&](int i) {
 };
 
 #+END_SRC
+
