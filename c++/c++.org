@@ -685,3 +685,36 @@ std::function<void(int)> print = [&](int i) {
 
 #+END_SRC
 
+* Arithmetic hacks
+
+** ceiling
+
+ceiling of x/n
+
+#+BEGIN_SRC c++
+(x + n-1)/n
+#+END_SRC
+
+floor x/n
+
+#+BEGIN_SRC c++
+x/n
+#+END_SRC
+
+* Get all the bits as a vector
+
+#+BEGIN_SRC c++
+std::vector<int> get_bits(int n) {
+    int i = 0;
+    std::vector<int> b;
+    while (n>0) {
+        int bit = n % 2;
+        n = n/2;
+        if (bit != 0)
+            b.push_back(i);
+        i++;
+    }
+    return b;
+}
+
+#+END_SRC
