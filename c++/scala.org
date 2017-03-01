@@ -640,3 +640,39 @@ printTree(build( List(2, 9, 4, 5, 7, 8, 9, 2,1,0,2)))
 
 print(tree2)
 #+END_SRC
+
+* Catalan numbers
+
+#+BEGIN_SRC scala
+val catalan = new Array[BigInt](10001)
+catalan(0) = BigInt(1)
+0 to 4999 foreach { n =>
+  catalan(n+1) = (2*(2*n+1) * catalan(n))/(n+2)
+}
+#+END_SRC
+
+* sum Odd numbers in pascal triangle row
+
+#+BEGIN_SRC scala
+var save:Map[BigInt, BigInt] = Map()
+
+def odd(n:BigInt):BigInt = {
+
+  if (save.contains(n)) {
+    save(n)
+  } else {
+    val result:BigInt =
+      if (n == 0) {
+        0
+      } else if (n == 1) {
+        1
+      } else if (n % 2 == 0) {
+        3 * odd(n / 2)
+      } else {
+        2*odd(n/2) + odd(n/2+1)
+      }
+    save += (n -> result)
+    result
+  }
+}
+#+END_SRC

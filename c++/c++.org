@@ -274,6 +274,22 @@ while (getline(std::cin, st, delim)) {
 
 * Algorithms 
 
+** Sort with functor
+
+#+BEGIN_SRC C++
+struct {
+    bool operator()(int a, int b) {   
+        return a < b;
+    }   
+} customLess;
+
+std::sort(s.begin(), s.end(), customLess);
+for (auto a : s) {
+    std::cout << a << " ";
+    
+}   
+#+END_SRC
+
 ** Checking all digits used
 
 #+BEGIN_SRC C++
@@ -385,6 +401,107 @@ void unionSet(int i, int j)
 
 ** Graph
 
+
+*** Dijkstra shortest path with a queue
+
+It uses a an adj matrix implementation
+
+#+BEGIN_SRC C++
+
+#ifdef USE_INTS
+typedef int node_value_type;
+#define UNREACHABLE 10000000
+#else
+typedef double node_value_type;
+#define UNREACHABLE std::numeric_limits<float>::infinity();
+#endif
+
+#define NO_VERTEX   (-1) // compute for all destinations
+typedef int node_type;
+
+
+typedef std::vector<std::vector<std::pair<node_type, node_value_type>>> graph_type;
+
+class Comparator
+{
+public:
+    int operator() ( const std::pair<node_type,node_value_type>& p1, const std::pair<node_type,node_value_type> &p2)  {
+        return p1.second>p2.second;
+    }
+};
+
+// if destination is -1 compute all destinations
+
+void dijkstra(const graph_type  &g,
+              const int &source, const int &destination,
+              std::vector<node_type>&parent,
+              std::vector<node_value_type>&distance)
+
+{
+    unsigned int N = g.size();
+
+    distance.resize(N);
+    parent.resize(N);
+
+    for(unsigned int i = 0 ;i < N; i++)
+    {
+        distance.at(i) = UNREACHABLE;
+        parent.at(i) = -1;
+    }
+
+    #define NODE_WEIGHT std::pair<node_type,node_value_type>
+    std::priority_queue<NODE_WEIGHT, std::vector<NODE_WEIGHT >, Comparator> Q;
+    #undef NODE_WEIGHT
+    
+    distance[source] = 0.0;
+
+    Q.push(std::make_pair(source,0.0));
+
+    while(!Q.empty())
+    {
+        node_type u = Q.top().first;
+        Q.pop();
+
+        if(destination != NO_VERTEX && u==destination) {
+            break;
+        }
+        
+        for(auto el:  g[u]) {
+            node_type v= el.first;
+            node_value_type w = el.second;
+
+            if(distance[v] > distance[u]+w)
+            {
+                distance[v] = distance[u]+w;
+                parent[v] = u;
+                Q.push(std::make_pair(v,distance[v]));
+            }
+        }
+    }
+/*
+    for(unsigned int i = 0 ;i < N; i++)
+    {
+        std::cout << "Un " << UNREACHABLE << std::endl;
+        std::cout << "Distance " << i << "  " << distance.at(i) << std::endl;
+        std::cout << "parent " << i << "  " << parent.at(i) << std::endl;
+    }
+*/
+}
+
+// how to use
+
+std::vector<node_type> predecessor;
+std::vector<node_value_type>distance;
+dijkstra(g, s, NO_VERTEX, predecessor, distance);
+
+
+#+END_SRC
+
+*** bellman ford and floyd marshall
+
+it uses a map implementation of the graph
+
+
 #+BEGIN_SRC c++
 typedef int node_type;
 typedef double node_value_type;
@@ -445,8 +562,6 @@ bool bellman_ford(graph_type &g, int n, node_type source,
     }
     return true;
 }
-
-
 
 void print_matrix(std::vector<std::vector<double>> &g)
 {
@@ -526,7 +641,7 @@ if (std::regex_search(input.begin(), input.end(), match, rgx)){
  #+END_SRC
 
 
-* Converstions
+* Conversions
 
 ** int string to string
 std::string s = std::to_string(42);
@@ -685,6 +800,106 @@ std::function<void(int)> print = [&](int i) {
 
 #+END_SRC
 
+** Simple binary tree implementation
+
+as close as I can think to a functional implementation
+
+#+BEGIN_SRC C++
+#include <iostream>
+#include <memory>
+#include <functional>
+#include <string>
+#include <set>
+
+typedef int node_type;
+
+struct tree_type {
+    std::shared_ptr<tree_type> left;
+    std::shared_ptr<tree_type> right;
+    node_type value;
+    tree_type(const node_type &v) {
+        left = nullptr;
+        right = nullptr;
+        value = v;
+    }
+};
+
+typedef std::shared_ptr<tree_type> tree_ptr;
+
+tree_ptr insert(tree_ptr current, node_type value)
+{
+    if (current == nullptr) {
+        return std::make_shared<tree_type>(value);
+    } 
+
+    if (value < current->value) {
+        current->left = insert(current->left, value);
+    } else {
+        current->right = insert(current->right, value);
+    }
+    return current;
+}
+
+void tree_in_order(tree_ptr current, std::function<void (node_type&)> func)
+{
+    if (current != nullptr) {
+        func(current->value);
+        tree_in_order(current->left, func);
+        tree_in_order(current->right, func);
+    }
+}
+
+std::string shape(tree_ptr current)
+{
+    std::string ret = "";
+    if (current != nullptr) {
+        if (current->left != nullptr) {
+            ret += "L";
+            ret += shape(current->left);
+        }
+        ret += ".";
+        if (current->right != nullptr) {
+            ret += "R";
+            ret += shape(current->right);
+        }
+    }
+    return ret;
+}
+
+int main()
+{
+
+    
+    int n;
+    int k;
+
+    std::cin >> n;
+    std::cin >> k;
+
+    int c = n;
+    std::set<std::string> types;
+    while (c--> 0) {
+        tree_ptr t = nullptr;
+        
+        for(int i=0;i<k;i++) {
+            int v;
+            std::cin >> v;
+            t = insert(t, v);
+        }
+        types.insert(shape(t));
+    }
+
+    
+    std::cout << types.size() << std::endl;
+    
+
+    return 0;
+}
+
+
+
+#+END_SRC
+
 * Arithmetic hacks
 
 ** ceiling
@@ -717,4 +932,23 @@ std::vector<int> get_bits(int n) {
     return b;
 }
 
+#+END_SRC
+
+* primes
+
+#+BEGIN_SRC C++
+int MAX = 32010;
+std::vector<bool> primes (MAX,true);
+
+void sieve()
+{
+    for(int i=2;i*i<MAX;i++) {
+        if (!primes.at(i))
+            continue;
+        //        std::cout << "prime " << i << std::endl;
+        for(int j=2;j*i<MAX;j++) {
+            primes.at(i*j) = false;
+        }
+    }
+}
 #+END_SRC
