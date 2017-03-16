@@ -729,7 +729,7 @@ in my computer long and long long are the same
 
 | int           |          2147483647 |
 | long int      | 9223372036854775807 |
-| long long int | 9223372036854775807 |
+| long long int | 9223372036854775807|
 
 Programatically with template function
 
@@ -940,7 +940,7 @@ std::vector<int> get_bits(int n) {
 int MAX = 32010;
 std::vector<bool> primes (MAX,true);
 
-void sieve()
+void seive()
 {
     for(int i=2;i*i<MAX;i++) {
         if (!primes.at(i))
@@ -951,4 +951,193 @@ void sieve()
         }
     }
 }
+#+END_SRC
+
+this one returns the result
+
+#+BEGIN_SRC C++
+std::vector<int> seive(long SIZE)
+{
+    std::vector<bool> primes (SIZE+1,true);
+    std::vector<int> result;
+    for(int i=2;i<=SIZE/i;i++) {
+        if (!primes.at(i))
+            continue;
+        //        std::cout << "prime " << i << std::endl;
+        for(int j=2;(j*i)<=SIZE;j++) {
+            primes.at(i*j) = false;
+        }
+    }
+    for(int i=2;i<SIZE;i++) {
+        if (primes.at(i)) {
+            result.push_back(i);
+        }
+    }
+    return result;
+}
+
+#+END_SRC
+
+** Prime factorization
+
+
+#+BEGIN_SRC C++
+
+// primes is a vector with primes.
+
+std::map<int,int> factors(long int n)
+{
+    assert(n > 0);
+    std::map<int,int> result {};
+    long int lim = int(sqrt(n) + 1);
+    assert(lim < primes.back());
+    for(auto p:primes) {
+        if (p > lim)
+            break;
+        while (n % p == 0) {
+            result[p] ++;
+            n = n / p;
+        }
+        if (n == 1)
+            break;
+    }
+    if (n > 1)
+        result[n]++;
+    return result;
+}
+#+END_SRC
+
+
+* geometry
+
+
+
+Area of a polygon
+
+- reads Number of points
+- reads each point
+  - sign implies the orientation of the polygon
+
+#+BEGIN_SRC C++
+void process() {
+    double x0 {};
+    double y0 {};
+    int N;
+
+    std::cin >> N;
+    std::cin >> x0 >> y0;
+    
+    double xp = x0;
+    double yp = y0;
+    
+    double area {};
+    
+    for(int i=1;i<N;i++) {
+        double x;
+        double y;
+        std::cin >> x >> y;
+        area += (x - xp) * (yp + y)/2;
+        xp = x;
+        yp = y;
+    }
+    
+    area += (x0 - xp) * (y0 + yp)/2;
+    std::cout << -area << std::endl;
+}
+#+END_SRC
+
+** Lines and points
+
+#+BEGIN_SRC C++
+#include <algorithm>
+#include <iostream>
+#include <cstdio>
+#include <cmath>
+#include <vector>
+#include <fstream>
+
+#define INF 1e9
+#define EPS 1e-9
+
+double DEG_to_RAD(double d) {
+    return d * M_PI / 180.0;
+}
+
+double RAD_to_DEG(double r) {
+    return r * 180.0 / M_PI;
+}
+
+// struct point_i { int x, y; };    // basic raw form, minimalist mode
+struct point {
+    int x, y;     // whenever possible, work with point_i
+    point() { x = y = 0; }                      // default constructor
+    point(int _x, int _y) : x(_x), y(_y) {
+    };
+    bool operator < (point other) const { // override less than operator
+        if (abs(x - other.x) > 0)                 // useful for sorting
+            return x < other.x;          // first criteria , by x-coordinate
+        return y < other.y;
+    }          // second criteria, by y-coordinate
+
+    bool operator == (point other) const {
+        return (abs(x - other.x) == 0 && abs(y - other.y) == 0);
+    }
+    point operator - (point other) const {
+        return point(x - other.x, y - other.y);
+    }
+
+};
+
+
+std::ostream &operator<< (std::ostream &output, point p)
+{
+    output << "[" << p.x << ":" << p.y << "]" ;
+    return output;
+}
+
+
+double dist(point p1, point p2) {                // Euclidean distance
+                      // hypot(dx, dy) returns sqrt(dx * dx + dy * dy)
+    return hypot(p1.x - p2.x, p1.y - p2.y);
+}           // return double
+
+struct line {
+    double a;
+    double b;
+    double c;
+    line(point p1, point p2) {
+        if (abs(p1.x - p2.x) == 0) {              // vertical line is fine
+            a = 1.0;
+            b = 0.0;
+            c = -p1.x;           // default values
+        } else {
+            a = -(double)(p1.y - p2.y) / (p1.x - p2.x);
+            b = 1.0;              // IMPORTANT: we fix the value of b to 1.0
+            c = -(double)(a * p1.x) - p1.y;
+        }
+    };
+    bool operator < (line other) const {
+
+        if (fabs(a - other.a) > EPS) {
+            return a < other.a;
+        }
+        if (fabs(b - other.b) > EPS) {
+            return b < other.b;
+        }
+        if (fabs(c - other.c) > EPS) {
+            return c < other.c;
+        }
+        return false;
+            
+    };
+    bool areParallel(line l2) {       // check coefficients a & b
+        return (fabs(a-l2.a) < EPS) && (fabs(b-l2.b) < EPS);
+    }
+    bool operator==(line l2) {       // check coefficients a & b
+        return areParallel(l2) && (fabs(c - l2.c) < EPS);
+    };
+
+};          // a way to represent a line
+
+
 #+END_SRC
