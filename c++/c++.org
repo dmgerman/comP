@@ -1141,3 +1141,734 @@ struct line {
 
 
 #+END_SRC
+
+* Strings
+
+** split
+
+
+#+BEGIN_SRC C++
+#include <sstream>
+#include <vector>
+#include <string>
+
+std::vector<std::string> split(std::string st, char separator=' ') {
+    std::vector<std::string> result {};
+    std::stringstream ss;
+    ss.str(st);
+    std::string item;
+    while (std::getline(ss, item, separator)) {
+        result.push_back(item);
+    }
+    return result;
+}
+#+END_SRC
+
+** join
+
+#+BEGIN_SRC C++
+#include <sstream>
+#include <vector>
+#include <string>
+
+std::string join(std::vector<std::string> sa, char separator=' ') {
+
+    std::string st {};
+
+    if (sa.size () > 0) {
+        st = sa.at(0);
+        for(auto it = std::next(sa.begin()); it != sa.end(); it++) {
+            st += separator;
+            st += *it;
+        }
+    }
+
+    return st;
+}
+#+END_SRC
+
+
+
+** KMP
+
+From: https://joelverhagen.com/blog/2011/11/three-string-matching-algorithms-in-c/
+
+#+BEGIN_SRC C++
+std::vector<size_t> knuthMorrisPrattTable(const std::string & needle)
+{
+    std::vector<size_t> table(needle.size() + 1, -1);
+    for(int index = 1; index <= (int)needle.size(); index++)
+    {
+        int position = table[index - 1];
+        
+        while(position != -1 && needle[position] != needle[index - 1])
+            position = table[position];
+
+        table[index] = position + 1;
+    }
+
+    return table;
+}
+
+std::vector<size_t> knuthMorrisPrattSearch(const std::string & needle, 
+                                           const std::string & haystack,
+                                           const std::vector<size_t> & table)
+{
+    std::vector<size_t> matches;
+    int haystackIndex = 0;
+    int needleIndex = 0;
+
+    int haystackSize = haystack.size();
+    int needleSize = needle.size();
+
+    while(haystackIndex < haystackSize)
+    {
+        while(needleIndex != -1 && (needleIndex == needleSize || needle[needleIndex] != haystack[haystackIndex]))
+            needleIndex = table[needleIndex];
+
+        needleIndex++;
+        haystackIndex++;
+
+        if(needleIndex == needleSize)
+            matches.push_back(haystackIndex - needleSize);
+    }
+ 
+    return matches;
+}
+
+#+END_SRC
+
+** Suffix array
+
+modernized code from textbook, but I made the mistake of requiring O(n^2) space :(
+
+#+BEGIN_SRC C++
+#include <algorithm>
+#include <iostream>
+#include <string>
+#include <vector>
+
+const std::string MARKER = "#";
+
+struct suffix_entry {
+    int idx;
+    std::string suffix;
+    suffix_entry(int _i, std::string _suf): idx(_i), suffix(_suf) {};
+};
+
+
+std::vector<suffix_entry> constructSA_slow(std::string T) {               // cannot go beyond 1000 characters
+    T+= MARKER;
+    int n = T.size();
+    std::vector<suffix_entry> SA;
+    for (int i = 0; i < n; i++) {
+        SA.push_back({i, T.substr(i)});
+    }
+    
+    std::sort(SA.begin(), SA.end(), [](suffix_entry a, suffix_entry b) {
+        return a.suffix < b.suffix;
+    }); // sort: O(n log n) * compare: O(n) = O(n^2 log n)
+    return SA;
+}
+
+
+std::vector<suffix_entry> constructSA(std::string T) {               // cannot go beyond 1000 characters
+//void constructSA() {         // this version can go up to 100000 characters
+    T+= MARKER;
+
+    int n = T.size();
+    std::vector<int> RA(n);
+    std::vector<int> tempRA(n);
+    std::vector<int> SA(n);
+
+
+    auto countingSort = [&](int k) {                                          // O(n)
+        int i {};
+        int sum {};
+        int maxi = std::max(300, n);   // up to 255 ASCII chars or length of n
+        std::vector<int> c(maxi,0);
+        std::vector<int> tempSA(n);
+
+        for (i = 0; i < n; i++)       // count the frequency of each integer rank
+            c.at(i + k < n ? RA.at(i + k) : 0)++;
+        for (i = sum = 0; i < maxi; i++) {
+            int t = c.at(i);
+            c.at(i) = sum;
+            sum += t;
+        }
+        for (i = 0; i < n; i++) {
+            // shuffle the suffix array if necessary
+            tempSA.at( c.at( SA.at(i)+k < n ? RA.at(SA.at(i)+k) : 0)++) = SA.at(i);
+        }
+        for (i = 0; i < n; i++)     {
+            // update the suffix array SA
+            SA.at(i) = tempSA.at(i);
+        }
+    };
+
+    for (int i = 0; i < n; i++)
+        RA[i] = T[i];                 // initial rankings
+    
+    for (int i = 0; i < n; i++)
+        SA[i] = i;     // initial SA: {0, 1, 2, ..., n-1}
+
+    int r {};
+    for (int k = 1; k < n; k <<= 1) {       // repeat sorting process log n times
+        countingSort(k);  // actually radix sort: sort based on the second item
+        countingSort(0);          // then (stable) sort based on the first item
+        tempRA[SA[0]] = r = 0;             // re-ranking; start from rank r = 0
+        for (int i = 1; i < n; i++) {
+            // compare adjacent suffixes
+            tempRA[SA[i]] = // if same pair => same rank r; otherwise, increase r
+                (RA[SA[i]] == RA[SA[i-1]] && RA[SA[i]+k] == RA[SA[i-1]+k]) ? r : ++r;
+        }
+        for (int i = 0; i < n; i++)                     // update the rank array RA
+            RA[i] = tempRA[i];
+        if (RA[SA[n-1]] == n-1)
+            break;               // nice optimization trick
+    }
+
+    std::vector<suffix_entry> sl;
+    for(int i=0;i<n;i++) {
+        sl.push_back({SA[i], T.substr(SA[i])});
+    }
+    return sl;
+}
+
+
+std::vector<int> computeLCP_slow(std::string T, const std::vector<suffix_entry> &SA) {
+    T+= MARKER;
+    int n = T.size();
+    std::vector<int> LCP(n,0);
+    LCP[0] = 0;                                              // default value
+    for (int i = 1; i < n; i++) {                // compute LCP by definition
+        int L = 0;                                       // always reset L to 0
+        while (T[SA[i].idx + L] == T[SA[i-1].idx + L])
+            L++;      // same L-th char, L++
+        LCP[i] = L;
+    }
+    return LCP;
+}
+
+std::vector<int> computeLCP(std::string T, const std::vector<suffix_entry> &SA) {
+    int i {};
+    int L {};
+    T+= MARKER;
+    int n = T.size();
+    std::vector<int> LCP(n,0);
+    std::vector<int> Phi(n,0);
+    std::vector<int> PLCP(n,0);
+
+    Phi[SA[0].idx] = -1;                                         // default value
+    for (i = 1; i < n; i++)                            // compute Phi in O(n)
+        Phi[SA[i].idx] = SA[i-1].idx;    // remember which suffix is behind this suffix
+    for (i = L = 0; i < n; i++) {             // compute Permuted LCP in O(n)
+        if (Phi[i] == -1) {           // special case
+            PLCP[i] = 0;
+            continue;
+        }  
+        while (T[i + L] == T[Phi[i] + L])
+            L++;       // L increased max n times
+        PLCP[i] = L;
+        L = std::max(L-1, 0);                             // L decreased max n times
+    }
+    for (i = 0; i < n; i++)                            // compute LCP in O(n)
+        LCP[i] = PLCP[SA[i].idx];   // put the permuted LCP to the correct position
+    return LCP;
+}
+
+std::pair<int,int> LRS(std::vector<int> LCP) {
+    // returns a pair (the LRS length and its index)
+    int idx = 0;
+    int n = LCP.size();
+    int maxLCP = -1;
+    for (int i = 1; i < n; i++) {
+        // O(n), start from i = 1
+        if (LCP[i] > maxLCP) {
+            maxLCP = LCP[i];
+            idx = i;
+        }
+    }
+    return std::make_pair(maxLCP, idx);
+}
+
+
+std::pair<int, int> stringMatching(const std::string &P, const std::vector<suffix_entry> &SA) {
+    // string matching in O(m log n)
+    int n = SA.size();
+    int m = P.size();
+    int lo = 0;
+    int hi = n-1;
+    int mid = lo;              // valid matching = [0..n-1]
+    while (lo < hi) {                                     // find lower bound
+        mid = (lo + hi) / 2;                              // this is round down
+//        int res = strncmp(T + SA[mid], P, m);  // try to find P in suffix 'mid'
+        int res = SA[mid].suffix.compare(0, m, P);
+        if (res >= 0)
+            hi = mid;        // prune upper half (notice the >= sign)
+        else
+            lo = mid + 1;           // prune lower half including mid
+    }                                      // observe `=' in "res >= 0" above
+    if (SA[lo].suffix.compare(0, m,  P) != 0)
+      return std::make_pair(-1, -1);    // if not found
+
+    std::pair<int,int> ans {};
+    ans.first = lo;
+    lo = 0;
+    hi = n - 1;
+    mid = lo;
+    while (lo < hi) {            // if lower bound is found, find upper bound
+        mid = (lo + hi) / 2;
+        int res = SA[mid].suffix.compare(0, m, P);
+        if (res > 0) hi = mid;                              // prune upper half
+        else         lo = mid + 1;            // prune lower half including mid
+    }                           // (notice the selected branch when res == 0)
+    if (SA[hi].suffix.compare(0, m, P) != 0)
+        hi--;                 // special case
+    ans.second = hi;
+    return ans;
+} // return lower/upperbound as first/second item of the pair, respectively
+
+
+std::pair<int, int> LCS(const std::string &st,
+                        const std::string &b,
+                        const std::vector<int> &LCP,
+                        const std::vector<suffix_entry> &SA) {
+    // returns a pair (the LCS length and its index)
+    int n = SA.size();
+    int m = b.size();
+    int i, idx = 0, maxLCP = -1;
+
+    auto owner = [&](int idx) {
+        return (idx < n-m-1) ? 1 : 2;
+    };
+
+    for (i = 1; i < n; i++) {
+        // O(n), start from i = 1
+        if (owner(SA[i].idx) != owner(SA[i-1].idx) && LCP[i] > maxLCP) {
+            maxLCP = LCP[i];
+            idx = i;
+        }
+    }
+    return std::make_pair(maxLCP, idx);
+}
+
+void two(){
+    std::string st = " this is the end of the world as we know it";
+    
+    std::string p {"and this is the sea"};
+//        std::string p {"GAC"};
+    int m = p.size();
+    st =  st + "$" + p;
+    int n = st.size()+1;
+    
+    auto owner = [&](int idx) {
+        return (idx < n-m-1) ? 1 : 2;
+    };
+    
+    auto sa = constructSA(st);
+    auto lcp = computeLCP(st, sa);
+    printf("\nThe LCP information of 'T+P' = '%s':\n", st.c_str());
+    printf("i\tSA[i]\tLCP[i]\tOwner\tSuffix\n");
+    for (int i = 0; i < n; i++)
+        printf("%2d\t%2d\t%2d\t%2d\t%s\n",
+               i, sa[i].idx, lcp[i],
+               owner(sa[i].idx), sa[i].suffix.c_str());
+    
+    auto ans = LCS(st, p, lcp, sa);
+    auto lcsans = sa[ans.second].suffix.substr(0, ans.first);
+    std::cout << std::endl << "The LCS is '" << lcsans << "' length  "
+              << ans.first << " offset " << ans.second << std::endl << std::endl;
+
+}
+
+int main() {
+  //printf("Enter a string T below, we will compute its Suffix Array:\n");
+
+    std::string st = "GATAGACA";
+
+    auto sa = constructSA_slow(st);
+    
+    auto print_sa = [&](std::string msg) {
+        std::cout << "FAST The Suffix Array of string T = '" << st
+        << "' is shown below " << msg << std::endl;
+        
+        
+        std::cout << "i\tSA[i]\tSuffix" << std::endl;
+
+        int i = 0;
+        for (auto s:sa) {
+            std::cout<< i << "\t" << s.idx << "\t" << s.suffix << std::endl;
+            i++;
+        }
+    };
+
+    print_sa("(O(n^2 log n) version)");
+    
+    sa = constructSA(st);
+    
+    print_sa("(O(n log n) version)");
+    
+    auto lcp = computeLCP_slow(st, sa); // O(n)
+
+    auto ans = LRS(lcp);                 // find the LRS of the first input string
+    auto lrsans = sa[ans.second].suffix.substr(0, ans.first);
+
+    std::cout << std::endl << "The LRS is '" << lrsans << "' length  "
+              << ans.first << " offset " << ans.second << std::endl << std::endl;
+
+    std::cout << "suffix and lcp" << std::endl;
+        
+    std::cout << "i\tSA[i]\tLCP[i]\tSuffix" << std::endl;
+
+    int i = 0;
+    for (auto s:sa) {
+        std::cout<< i << "\t" << s.idx << "\t" << lcp[i] << "\t"<< s.suffix << std::endl;
+        i++;
+    };
+
+    std::string P = "GA";
+    auto pos = stringMatching(P, sa);
+    if (pos.first != -1 && pos.second != -1) {
+        printf("%s is found SA[%d..%d] of %s\n", P.c_str(), pos.first, pos.second, st.c_str());
+        printf("They are:\n");
+        for (int i = pos.first; i <= pos.second; i++)
+            printf("  %s\n", sa[i].suffix.c_str());
+    } else {
+        printf("%s is not found in %s\n", P.c_str(), st.c_str());
+    }
+
+
+    //// do now two strings
+
+    two();
+  return 0;
+}
+#+END_SRC
+
+this one is hacky, but it is the "correct" one because it does not need O(n^2) space
+
+#+BEGIN_SRC C++
+#include <algorithm>
+#include <iostream>
+#include <string>
+#include <vector>
+
+const std::string MARKER = "#";
+
+struct suffix_entry_inefficient {
+    int idx;
+    std::string suffix;
+    suffix_entry_inefficient(int _i, std::string _suf): idx(_i), suffix(_suf) {};
+};
+
+struct suffix_entry {
+    int idx;
+    std::string *st;
+    suffix_entry(int _i, std::string *_st): idx(_i), st(_st) {};
+    std::string suffix() {
+        return (*st).substr(idx);
+    }
+};
+
+
+std::vector<suffix_entry> constructSA_slow(std::string &T) {               // cannot go beyond 1000 characters
+    auto t2 = T + MARKER;
+    int n = t2.size();
+    std::vector<suffix_entry> SA;
+    for (int i = 0; i < n; i++) {
+        SA.push_back({i, &T});
+    }
+    
+    std::sort(SA.begin(), SA.end(), [](suffix_entry a, suffix_entry b) {
+            return a.suffix() < b.suffix();
+    }); // sort: O(n log n) * compare: O(n) = O(n^2 log n)
+    return SA;
+}
+
+
+std::vector<suffix_entry> constructSA(std::string &T) {               // cannot go beyond 1000 characters
+//void constructSA() {         // this version can go up to 100000 characters
+    auto t2 = T + MARKER;
+    int n = t2.size();
+
+    std::vector<int> RA(n);
+    std::vector<int> tempRA(n);
+    std::vector<int> SA(n);
+
+
+    auto countingSort = [&](int k) {                                          // O(n)
+        int i {};
+        int sum {};
+        int maxi = std::max(300, n);   // up to 255 ASCII chars or length of n
+        std::vector<int> c(maxi,0);
+        std::vector<int> tempSA(n);
+
+        for (i = 0; i < n; i++)       // count the frequency of each integer rank
+            c.at(i + k < n ? RA.at(i + k) : 0)++;
+        for (i = sum = 0; i < maxi; i++) {
+            int t = c.at(i);
+            c.at(i) = sum;
+            sum += t;
+        }
+        for (i = 0; i < n; i++) {
+            // shuffle the suffix array if necessary
+            tempSA.at( c.at( SA.at(i)+k < n ? RA.at(SA.at(i)+k) : 0)++) = SA.at(i);
+        }
+        for (i = 0; i < n; i++)     {
+            // update the suffix array SA
+            SA.at(i) = tempSA.at(i);
+        }
+    };
+
+    for (int i = 0; i < n; i++)
+        RA[i] = T[i];                 // initial rankings
+    
+    for (int i = 0; i < n; i++)
+        SA[i] = i;     // initial SA: {0, 1, 2, ..., n-1}
+
+    int r {};
+    for (int k = 1; k < n; k <<= 1) {       // repeat sorting process log n times
+        countingSort(k);  // actually radix sort: sort based on the second item
+        countingSort(0);          // then (stable) sort based on the first item
+        tempRA[SA[0]] = r = 0;             // re-ranking; start from rank r = 0
+        for (int i = 1; i < n; i++) {
+            // compare adjacent suffixes
+            tempRA[SA[i]] = // if same pair => same rank r; otherwise, increase r
+                (RA[SA[i]] == RA[SA[i-1]] && RA[SA[i]+k] == RA[SA[i-1]+k]) ? r : ++r;
+        }
+        for (int i = 0; i < n; i++)                     // update the rank array RA
+            RA[i] = tempRA[i];
+        if (RA[SA[n-1]] == n-1)
+            break;               // nice optimization trick
+    }
+
+    std::vector<suffix_entry> sl;
+    for(int i=0;i<n;i++) {
+        sl.push_back({SA[i], &T});
+    }
+    return sl;
+}
+
+
+std::vector<int> computeLCP_slow(std::string T, const std::vector<suffix_entry> &SA) {
+    T+= MARKER;
+    int n = T.size();
+    std::vector<int> LCP(n,0);
+    LCP[0] = 0;                                              // default value
+    for (int i = 1; i < n; i++) {                // compute LCP by definition
+        int L = 0;                                       // always reset L to 0
+        while (T[SA[i].idx + L] == T[SA[i-1].idx + L])
+            L++;      // same L-th char, L++
+        LCP[i] = L;
+    }
+    return LCP;
+}
+
+std::vector<int> computeLCP(std::string T, const std::vector<suffix_entry> &SA) {
+    int i {};
+    int L {};
+    T+= MARKER;
+    int n = T.size();
+    std::vector<int> LCP(n,0);
+    std::vector<int> Phi(n,0);
+    std::vector<int> PLCP(n,0);
+
+    Phi[SA[0].idx] = -1;                                         // default value
+    for (i = 1; i < n; i++)                            // compute Phi in O(n)
+        Phi[SA[i].idx] = SA[i-1].idx;    // remember which suffix is behind this suffix
+    for (i = L = 0; i < n; i++) {             // compute Permuted LCP in O(n)
+        if (Phi[i] == -1) {           // special case
+            PLCP[i] = 0;
+            continue;
+        }  
+        while (T[i + L] == T[Phi[i] + L])
+            L++;       // L increased max n times
+        PLCP[i] = L;
+        L = std::max(L-1, 0);                             // L decreased max n times
+    }
+    for (i = 0; i < n; i++)                            // compute LCP in O(n)
+        LCP[i] = PLCP[SA[i].idx];   // put the permuted LCP to the correct position
+    return LCP;
+}
+
+std::pair<int,int> LRS(std::vector<int> LCP) {
+    // returns a pair (the LRS length and its index)
+    int idx = 0;
+    int n = LCP.size();
+    int maxLCP = -1;
+    for (int i = 1; i < n; i++) {
+        // O(n), start from i = 1
+        if (LCP[i] > maxLCP) {
+            maxLCP = LCP[i];
+            idx = i;
+        }
+    }
+    return std::make_pair(maxLCP, idx);
+}
+
+
+std::pair<int, int> stringMatching(std::string &P, std::vector<suffix_entry> &SA) {
+    // string matching in O(m log n)
+    int n = SA.size();
+    int m = P.size();
+    int lo = 0;
+    int hi = n-1;
+    int mid = lo;              // valid matching = [0..n-1]
+    while (lo < hi) {                                     // find lower bound
+        mid = (lo + hi) / 2;                              // this is round down
+//        int res = strncmp(T + SA[mid], P, m);  // try to find P in suffix 'mid'
+        int res = (SA[mid].suffix()).compare(0, m, P);
+        if (res >= 0)
+            hi = mid;        // prune upper half (notice the >= sign)
+        else
+            lo = mid + 1;           // prune lower half including mid
+    }                                      // observe `=' in "res >= 0" above
+    if (SA[lo].suffix().compare(0, m,  P) != 0)
+      return std::make_pair(-1, -1);    // if not found
+
+    std::pair<int,int> ans {};
+    ans.first = lo;
+    lo = 0;
+    hi = n - 1;
+    mid = lo;
+    while (lo < hi) {            // if lower bound is found, find upper bound
+        mid = (lo + hi) / 2;
+        int res = (SA[mid].suffix()).compare(0, m, P);
+        if (res > 0) hi = mid;                              // prune upper half
+        else         lo = mid + 1;            // prune lower half including mid
+    }                           // (notice the selected branch when res == 0)
+    if ((SA[hi].suffix()).compare(0, m, P) != 0)
+        hi--;                 // special case
+    ans.second = hi;
+    return ans;
+} // return lower/upperbound as first/second item of the pair, respectively
+
+
+std::pair<int, int> LCS(const std::string &st,
+                        const std::string &b,
+                        const std::vector<int> &LCP,
+                        const std::vector<suffix_entry> &SA) {
+    // returns a pair (the LCS length and its index)
+    int n = SA.size();
+    int m = b.size();
+    int i, idx = 0, maxLCP = -1;
+
+    auto owner = [&](int idx) {
+        return (idx < n-m-1) ? 1 : 2;
+    };
+
+    for (i = 1; i < n; i++) {
+        // O(n), start from i = 1
+        if (owner(SA[i].idx) != owner(SA[i-1].idx) && LCP[i] > maxLCP) {
+            maxLCP = LCP[i];
+            idx = i;
+        }
+    }
+    return std::make_pair(maxLCP, idx);
+}
+
+void print_sa(std::string st, std::vector<suffix_entry> &sa, std::string msg) {
+    std::cout << "FAST The Suffix Array of string T = '" << st
+              << "' is shown below " << msg << std::endl;
+        
+        
+    std::cout << "i\tSA[i]\tSuffix" << std::endl;
+
+    int i = 0;
+    for (auto s:sa) {
+        std::cout<< i << "\t" << s.idx << "\t" << s.suffix() << std::endl;
+        i++;
+    }
+}
+
+
+void two(){
+    std::string st = " this is the end of the world as we know it";
+    
+    std::string p {"and this is the sea"};
+//        std::string p {"GAC"};
+    int m = p.size();
+    st =  st + "$" + p;
+    int n = st.size()+1;
+    
+    auto owner = [&](int idx) {
+        return (idx < n-m-1) ? 1 : 2;
+    };
+    
+    auto sa = constructSA(st);
+    print_sa(st, sa, "");
+    auto lcp = computeLCP(st, sa);
+    printf("\nth LCP information of 'T+P' = '%s':\n", st.c_str());
+    printf("i\tSA[i]\tLCP[i]\tOwner\tSuffix\n");
+    for (int i = 0; i < n; i++) {
+        std::string suf = sa[i].suffix();
+        printf("%2d\t%2d\t%2d\t%2d\t%s\n",
+               i, sa[i].idx, lcp[i],
+               owner(sa[i].idx), suf.c_str());
+    }
+    
+    auto ans = LCS(st, p, lcp, sa);
+    auto lcsans = (sa[ans.second].suffix()).substr(0, ans.first);
+    std::cout << std::endl << "The LCS is '" << lcsans << "' length  "
+              << ans.first << " offset " << ans.second << std::endl << std::endl;
+
+}
+
+
+#ifdef adfad
+
+
+
+#endif
+
+int main() {
+  //printf("Enter a string T below, we will compute its Suffix Array:\n");
+
+    std::string st = "t to be or not to be that is the question";
+
+    auto sa = constructSA_slow(st);
+    
+    print_sa(st, sa, "(O(n^2 log n) version)");
+    
+    sa = constructSA(st);
+    
+    print_sa(st, sa,"(O(n log n) version)");
+    
+    auto lcp = computeLCP_slow(st, sa); // O(n)
+
+    auto ans = LRS(lcp);                 // find the LRS of the first input string
+    auto lrsans = sa[ans.second].suffix().substr(0, ans.first);
+
+    std::cout << std::endl << "The LRS is '" << lrsans << "' length  "
+              << ans.first << " offset " << ans.second << std::endl << std::endl;
+
+    std::cout << "suffix and lcp" << std::endl;
+        
+    std::cout << "i\tSA[i]\tLCP[i]\tSuffix" << std::endl;
+
+    int i = 0;
+    for (auto s:sa) {
+        std::cout<< i << "\t" << s.idx << "\t" << lcp[i] << "\t"<< s.suffix() << std::endl;
+        i++;
+    };
+
+    std::string P = "A";
+    auto pos = stringMatching(P, sa);
+    if (pos.first != -1 && pos.second != -1) {
+        printf("%s is found SA[%d..%d] of %s\n", P.c_str(), pos.first, pos.second, st.c_str());
+        printf("They are:\n");
+        for (int i = pos.first; i <= pos.second; i++)
+            printf("  %s\n", sa[i].suffix().c_str());
+    } else {
+        printf("%s is not found in %s\n", P.c_str(), st.c_str());
+    }
+
+
+    //// do now two strings
+
+    two();
+  return 0;
+}
+
+#+END_SRC
